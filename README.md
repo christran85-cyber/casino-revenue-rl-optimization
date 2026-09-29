@@ -7,23 +7,25 @@
 ![Machine Learning](https://img.shields.io/badge/Machine%20Learning-Q--Learning-purple)
 ![Status](https://img.shields.io/badge/Status-Complete-brightgreen)
 
+---
+
 ## 📊 Project Architecture & Workflow
 
 ![CasinoOps RL Capstone Architecture](capstone.png)
 
 ---
 
-## 📌 Project Overview
+# 📌 Project Overview
 
-**CasinoOps RL** is a reinforcement learning project that explores how an intelligent agent can learn operational decision strategies from simulated casino gaming data.
+**CasinoOps RL** is a reinforcement learning capstone project that explores how an intelligent agent can learn operational decision strategies from simulated casino gaming data.
 
-I built a custom reinforcement learning environment using **Gymnasium** and implemented a **Q-learning agent from scratch** rather than relying on a prebuilt reinforcement learning model.
+I built a custom reinforcement learning environment using **Gymnasium** and implemented a **tabular Q-learning agent from scratch** using Python and NumPy.
 
-The agent observes machine operating conditions, selects one of three simulated operational actions, receives a reward, and gradually learns which actions produce stronger outcomes under different conditions.
+The project is modeled as a **one-step reinforcement learning decision problem**. For each episode, the agent observes the operating condition of a simulated casino gaming machine, selects one of three operational actions, receives an immediate reward, and the episode ends.
 
-The project demonstrates an end-to-end reinforcement learning workflow:
+The complete workflow includes:
 
-**Data Preparation → Environment Design → Q-Learning → Training → Evaluation → Experimentation → Business Interpretation**
+**Data Preparation → Environment Design → State Discretization → Q-Learning → Training → Evaluation → Baseline Comparison → Hyperparameter Experimentation → Business Interpretation**
 
 > **Note:** This project uses synthetic data and a simulated reward system. It is a technical proof of concept and is not intended to provide real-world casino operational or gambling recommendations.
 
@@ -31,26 +33,29 @@ The project demonstrates an end-to-end reinforcement learning workflow:
 
 # 🎯 Business Problem
 
-Casino gaming environments generate operational data related to machine activity, wagering behavior, payouts, maintenance, and revenue.
+Casino gaming environments can generate operational data related to machine activity, wagering behavior, payouts, maintenance, and revenue.
 
-A traditional predictive model can estimate an outcome. Reinforcement learning addresses a different question:
+A traditional predictive model asks:
 
-> **Given the current operating conditions, what action should an agent take to maximize its expected reward?**
+> **What outcome is likely to occur?**
 
-This project explores that question by creating a simulated decision-making environment in which an RL agent learns from repeated interactions.
+This reinforcement learning project explores a different question:
 
-The goal is to demonstrate how reinforcement learning can support **adaptive decision-making**, where different operating conditions can lead to different learned actions.
+> **Given the current operating conditions, which operational action should the agent select to maximize its immediate expected reward?**
+
+The goal is to demonstrate how reinforcement learning can support **state-dependent decision-making**, where different machine conditions can lead to different actions.
 
 ---
 
 # 🗂️ Dataset
 
-The project uses a synthetic casino revenue dataset containing approximately:
+The project uses a **synthetic casino revenue dataset** containing:
 
 - **2,000 machine records**
 - **45 simulated locations**
 - Operational and revenue-related variables
 - Machine activity and maintenance information
+- Monthly revenue measurements
 
 The dataset was created for educational experimentation.
 
@@ -63,6 +68,7 @@ The dataset was created for educational experimentation.
 | `store_name` | Fictional location name |
 | `game_type` | Game category |
 | `location_type` | Type of operating location |
+| `distance_from_hq_miles` | Simulated distance from headquarters |
 | `days_active` | Number of active operating days |
 | `avg_bet` | Average wager amount |
 | `payout_rate` | Machine payout rate |
@@ -73,30 +79,46 @@ The dataset was created for educational experimentation.
 | `machine_swapouts` | Number of machine replacements |
 | `monthly_revenue` | Monthly revenue |
 
-Missing numerical values were handled using **median imputation** before the reinforcement learning environment was created.
+Missing numerical values were handled using **median imputation** before constructing the reinforcement learning environment.
 
 ---
 
 # 🧠 Reinforcement Learning Design
 
-A custom reinforcement learning environment was created using **Gymnasium**.
+The project uses a custom **Gymnasium** environment.
+
+Each episode represents a **single operational decision**:
+
+```text
+Machine State
+     ↓
+Agent Observes Conditions
+     ↓
+Select Operational Action
+     ↓
+Environment Calculates Reward
+     ↓
+Q-Value Updated
+     ↓
+Episode Ends
+```
 
 The environment defines:
 
 - Observation space
 - Action space
-- State transitions
-- Reward calculation
+- State representation
+- State-dependent reward calculation
 - Environment reset behavior
 - Episode termination
 
-The environment converts the casino dataset into a simulated decision-making problem that a reinforcement learning agent can interact with.
+Because the environment terminates after one action, the agent learns directly from the **immediate measured reward** rather than estimating a long sequence of future rewards.
 
 ---
 
 # 👁️ Observation Space
 
-The RL agent observes five operational variables:
+The agent observes five operational variables:
 
 ```text
 avg_bet
@@ -106,7 +128,7 @@ number_of_services
 machine_swapouts
 ```
 
-Because tabular Q-learning requires discrete states, continuous variables were transformed using Scikit-learn's:
+Because tabular Q-learning requires discrete states, the numerical state variables are transformed using Scikit-learn's:
 
 ```python
 KBinsDiscretizer
@@ -122,7 +144,7 @@ KBinsDiscretizer
 | Number of Services | 3 |
 | Machine Swapouts | 2 |
 
-This creates a manageable discrete state space for the Q-learning agent.
+This produces a manageable discrete state representation for the tabular Q-learning agent.
 
 ---
 
@@ -130,19 +152,38 @@ This creates a manageable discrete state space for the Q-learning agent.
 
 The agent can select one of three simulated operational actions:
 
-| Action | Description |
+| Action | Operational Decision |
 |---:|---|
-| **0** | Maintain the current operating configuration |
-| **1** | Apply an operational adjustment intended to improve performance |
-| **2** | Apply an alternative optimization strategy |
+| **0** | Maintain |
+| **1** | Increase Bet |
+| **2** | Adjust Payout |
 
-The agent learns which actions provide stronger expected rewards under different operating conditions.
+The reward design is **state-dependent**, meaning an operational adjustment can produce different outcomes depending on the current machine conditions.
+
+As a result, an action that performs well for one simulated machine state may perform poorly for another.
+
+---
+
+# 🏆 Reward Design
+
+The reward function is designed to evaluate the immediate simulated result of an operational decision.
+
+The environment allows actions to produce both:
+
+- **Positive rewards**
+- **Negative rewards**
+
+depending on the machine's operating state.
+
+This was an important part of the project design because it prevents the agent from receiving an automatic advantage simply for choosing a particular action.
+
+The agent must instead learn which action tends to produce stronger rewards for different discretized machine states.
 
 ---
 
 # 🤖 Q-Learning Agent
 
-The Q-learning algorithm was implemented directly using **Python and NumPy**.
+The agent was implemented directly using **Python and NumPy**.
 
 The Q-table has the following dimensions:
 
@@ -154,24 +195,22 @@ The first five dimensions represent the discretized state variables.
 
 The final dimension represents the three available actions.
 
-The Q-learning update follows:
+Because this is a **one-step environment**, the project uses the following immediate-reward Q-value update:
 
 ```text
-Q(s,a) = Q(s,a) + α[r + γ max Q(s',a') - Q(s,a)]
+Q(s,a) = Q(s,a) + α[r - Q(s,a)]
 ```
 
 Where:
 
 ```text
 α = Learning rate
-γ = Discount factor
-r = Reward
+r = Immediate measured reward
 s = Current state
-s' = Next state
 a = Selected action
 ```
 
-The Q-table is updated as the agent interacts with the environment.
+There is no future-state bootstrapping term in the final update because each episode terminates immediately after the selected action.
 
 ---
 
@@ -185,7 +224,7 @@ Training begins with:
 epsilon = 1.0
 ```
 
-This encourages exploration.
+This encourages exploration of different actions.
 
 Epsilon gradually decreases until reaching:
 
@@ -193,7 +232,7 @@ Epsilon gradually decreases until reaching:
 epsilon_min = 0.05
 ```
 
-This shifts the agent toward using learned Q-values while maintaining a small amount of exploration.
+This shifts the agent toward greater use of its learned Q-values while maintaining a small amount of exploration.
 
 ---
 
@@ -205,53 +244,104 @@ The primary agent was trained using:
 |---|---:|
 | Training Episodes | 1,000 |
 | Learning Rate (`alpha`) | 0.10 |
-| Discount Factor (`gamma`) | 0.95 |
 | Initial Epsilon | 1.00 |
 | Minimum Epsilon | 0.05 |
 | Epsilon Decay | 0.995 |
+| Environment Type | One-step decision environment |
+
+Because each episode contains only one operational decision, a future-reward discount factor is not used in the final Q-value update.
 
 ---
 
 # 📈 Training Analysis
 
-Training performance was evaluated using:
+Training performance was analyzed using:
 
 - Episode rewards
 - Average reward
 - Moving-average reward
 - Q-value statistics
 - Non-zero learned Q-values
-- Agent action selections
+- Agent action behavior
 
 A **50-episode moving average** was used to reduce short-term noise and make the overall reward behavior easier to interpret.
 
-The notebook contains the complete training visualizations and results.
+The complete training plots and outputs are available in the Jupyter notebook.
 
 ---
 
 # 🧪 Agent Evaluation
 
-After training, the learned policy was tested across **10 simulated machine states**.
+After training, the learned policy was evaluated across **100 simulated machine states**.
 
-### Action Distribution
+The evaluation recorded:
 
-| Action | Times Selected |
-|---:|---:|
-| Action 0 | 2 |
-| Action 1 | 5 |
-| Action 2 | 3 |
+- Selected action
+- Measured reward
+- Learned Q-value
+- Machine operating state
 
-The agent used **all three available actions** during evaluation.
+Testing across many states provides a stronger evaluation than examining only a few individual examples.
 
-Action 1 was selected in **5 of the 10 evaluation cases**.
+The evaluation showed that the agent learned **state-dependent decision behavior** rather than simply applying the same action to every machine condition.
 
-The variation in selected actions demonstrates that the learned policy is **state-dependent** rather than applying the same decision to every simulated machine condition.
+---
+
+# ⚖️ Fixed-Policy Baseline Comparison
+
+To determine whether the learned policy provided value beyond a simple fixed strategy, the learned agent was compared with three fixed-action policies:
+
+- **Always Maintain**
+- **Always Increase Bet**
+- **Always Adjust Payout**
+- **Learned Q-Learning Policy**
+
+All policies were evaluated using the **same 100 machine states** with a fixed random seed for reproducibility.
+
+### Final Policy Comparison
+
+| Policy | Average Reward | Reward Std. Dev. | Minimum Reward | Maximum Reward |
+|---|---:|---:|---:|---:|
+| Always Adjust Payout | 14.01 | 16.66 | -16.03 | 91.33 |
+| Always Increase Bet | 14.15 | 19.69 | -54.80 | 69.78 |
+| **Always Maintain** | **18.87** | 17.97 | 0.07 | 91.33 |
+| Learned Q-Learning Policy | **18.53** | 18.26 | -7.12 | 91.33 |
+
+In this evaluation, **Always Maintain produced the highest average measured reward at 18.87**, while the learned Q-learning policy achieved **18.53**.
+
+The difference was approximately:
+
+```text
+0.34 reward points
+```
+
+The learned policy therefore performed similarly to the strongest fixed-action baseline but **did not outperform it in this run**.
+
+This is an important result because it demonstrates why reinforcement learning agents should be evaluated against simple baseline strategies rather than judged only by their training rewards.
+
+The comparison also showed that **Increase Bet** and **Adjust Payout** could generate negative rewards for certain machine states.
+
+---
+
+# 🧠 Learned Agent Behavior
+
+The agent did not simply learn that one operational action was universally best.
+
+Instead, action selection depended on the discretized machine state.
+
+This provides evidence that the agent developed a **state-dependent policy**.
+
+However, the baseline comparison also revealed an important limitation: learning a state-dependent policy does not automatically mean that the learned strategy is better than a simple fixed policy.
+
+This distinction became one of the most important findings of the project.
 
 ---
 
 # 🔬 Hyperparameter Experiment
 
-To investigate the effect of learning rate, additional agents were trained using:
+A learning-rate experiment was performed to study how the Q-learning update rate affected training.
+
+Three learning rates were compared:
 
 ```text
 α = 0.01
@@ -259,39 +349,122 @@ To investigate the effect of learning rate, additional agents were trained using
 α = 0.50
 ```
 
-Other major training settings were kept consistent.
+Each configuration was trained for:
+
+```text
+1,000 episodes
+```
 
 ### Experimental Results
 
-| Learning Rate | Average Reward | Maximum Q-Value | Non-Zero Q-Values |
+| Learning Rate | Average Reward | Maximum Q-Value | Non-Zero Learned Q-Values |
 |---:|---:|---:|---:|
-| 0.01 | 11.951048 | 8.048067 | 128 |
-| **0.10** | **12.210708** | 59.211095 | **134** |
-| 0.50 | 11.797264 | 174.841844 | 125 |
+| **0.01** | **18.36** | 7.41 | 260 |
+| 0.10 | 16.81 | 30.32 | 275 |
+| 0.50 | 17.83 | 71.09 | 264 |
 
-For this experimental run, `α = 0.10` produced the highest average reward and the greatest number of non-zero learned Q-values.
+In this experimental run, **α = 0.01 produced the highest average reward at approximately 18.36**.
 
-The `0.50` learning rate generated substantially larger Q-values but did not improve average reward.
+The experiment also showed that increasing the learning rate produced substantially larger maximum Q-values:
 
-This experiment demonstrates why reinforcement learning hyperparameters should be tested rather than selected arbitrarily.
+```text
+α = 0.01 → Maximum Q ≈ 7.41
+α = 0.10 → Maximum Q ≈ 30.32
+α = 0.50 → Maximum Q ≈ 71.09
+```
 
-Because the environment contains randomized state selection and exploration, results can vary between runs.
+However, larger Q-values did **not** correspond to higher average reward.
+
+This demonstrates why reinforcement learning hyperparameters should be evaluated experimentally rather than selected based only on the magnitude of learned values.
+
+Because the environment includes randomized state selection and epsilon-greedy exploration, experimental results may vary between runs.
 
 ---
 
 # 💡 Key Findings
 
-The project demonstrates several reinforcement learning concepts:
+The project produced several important findings:
 
-- The agent learned different decisions for different machine states.
-- All three available actions were used during evaluation.
-- Action 1 was selected most frequently in the 10-state evaluation.
-- Epsilon decay transitioned the agent from exploration toward exploitation.
-- State discretization allowed continuous operational features to be used with tabular Q-learning.
-- Learning rate affected both Q-value magnitude and training behavior.
-- `α = 0.10` produced the strongest average reward in the learning-rate experiment.
+- A custom Gymnasium environment can transform operational data into an RL decision problem.
+- Continuous operating variables can be converted into discrete states for tabular Q-learning.
+- The agent learned different actions for different machine conditions.
+- State-dependent reward design allowed actions to generate both positive and negative outcomes.
+- Epsilon decay shifted the agent from exploration toward exploitation.
+- A learned state-dependent policy does not automatically outperform a simple baseline.
+- **Always Maintain achieved an average reward of 18.87 compared with 18.53 for the learned policy in the final evaluation.**
+- Learning rate significantly affected Q-value magnitude and training behavior.
+- In the final learning-rate experiment, **α = 0.01 produced the highest average training reward**.
+- Baseline comparisons are essential when evaluating whether an RL policy provides meaningful improvement.
 
-The primary takeaway is that the RL agent developed **state-dependent decision behavior** rather than selecting one universal action.
+---
+
+# 📊 Project Results at a Glance
+
+| Area | Result |
+|---|---|
+| Dataset | 2,000 synthetic machine records |
+| Locations | 45 simulated locations |
+| Environment | Custom Gymnasium environment |
+| Environment Type | One-step decision problem |
+| Algorithm | Tabular Q-Learning |
+| State Features | 5 |
+| Available Actions | 3 |
+| Training Episodes | 1,000 |
+| Final Exploration Rate | 0.05 |
+| Evaluation States | 100 |
+| Fixed Policies Compared | 3 |
+| Learned Policy Avg. Reward | 18.53 |
+| Strongest Fixed Baseline | Always Maintain |
+| Strongest Fixed Baseline Avg. Reward | 18.87 |
+| Learning Rates Tested | 0.01, 0.10, 0.50 |
+| Highest Experimental Avg. Reward | 18.36 at α = 0.01 |
+
+---
+
+# ⚠️ Limitations
+
+This project is a technical proof of concept built using a simplified simulated environment.
+
+Major limitations include:
+
+- Synthetic data
+- Simulated reward logic
+- Limited action space
+- Limited observation space
+- One-step episodes
+- Random exploration
+- No long-term state transitions
+- No real-world casino operational validation
+
+Because each episode terminates after one action, the agent learns from an immediate measured reward and does not model the long-term consequences of operational decisions.
+
+The learned policy also did not outperform the strongest fixed baseline in the final evaluation.
+
+These limitations are important when interpreting the results.
+
+The project demonstrates reinforcement learning concepts within a simulated environment and should not be interpreted as a production casino decision system.
+
+---
+
+# 🔮 Future Improvements
+
+Future versions of the project could include:
+
+- Multi-step episodes
+- Long-term state transitions
+- More sophisticated reward shaping
+- Additional operational actions
+- Larger state spaces
+- Multiple random-seed experiments
+- Separate training and testing environments
+- Additional hyperparameter experiments
+- Automated experiment tracking
+- Larger or more realistic datasets
+- Deep reinforcement learning
+- DQN comparison
+- PPO comparison
+
+A multi-step environment would be particularly valuable because it would allow the agent to learn how current actions affect future states and future rewards.
 
 ---
 
@@ -314,8 +487,6 @@ The primary takeaway is that the RL agent developed **state-dependent decision b
 
 # 💼 Skills Demonstrated
 
-This project demonstrates hands-on experience with:
-
 ### Data Science
 
 - Data preparation
@@ -329,9 +500,10 @@ This project demonstrates hands-on experience with:
 ### Machine Learning
 
 - Reinforcement learning
-- Q-learning
+- Tabular Q-learning
 - Hyperparameter experimentation
-- Model evaluation
+- Policy evaluation
+- Baseline comparison
 - State discretization
 
 ### Reinforcement Learning
@@ -339,12 +511,13 @@ This project demonstrates hands-on experience with:
 - Custom Gymnasium environments
 - Observation spaces
 - Action spaces
-- Reward functions
+- State-dependent reward functions
 - Q-tables
 - Q-value updates
 - Epsilon-greedy policies
 - Exploration vs. exploitation
 - Policy evaluation
+- Hyperparameter analysis
 
 ### Software & Engineering
 
@@ -427,87 +600,39 @@ Run the notebook from top to bottom.
 
 ---
 
-# 📊 Project Results at a Glance
-
-| Area | Result |
-|---|---|
-| Dataset | 2,000 synthetic machine records |
-| Locations | 45 simulated locations |
-| Environment | Custom Gymnasium environment |
-| Algorithm | Q-Learning |
-| State Features | 5 |
-| Available Actions | 3 |
-| Main Training Episodes | 1,000 |
-| Final Exploration Rate | 0.05 |
-| Evaluation States | 10 |
-| Actions Used During Evaluation | All 3 |
-| Most Selected Action | Action 1 |
-| Learning Rates Tested | 0.01, 0.10, 0.50 |
-| Highest Experimental Average Reward | 12.210708 at α = 0.10 |
-
----
-
-# ⚠️ Limitations
-
-This project is a technical proof of concept built in a simplified simulated environment.
-
-Limitations include:
-
-- Synthetic data
-- Simulated reward logic
-- Limited action space
-- Limited observation space
-- Short environment interactions
-- Random exploration
-- No real-world casino operational validation
-
-The results demonstrate reinforcement learning concepts within the simulated environment and should not be interpreted as production casino recommendations.
-
----
-
-# 🔮 Future Improvements
-
-Future versions could include:
-
-- Longer multi-step episodes
-- More sophisticated reward shaping
-- Additional operational actions
-- Larger state spaces
-- Multiple random-seed experiments
-- Train/test environment separation
-- Additional hyperparameter experiments
-- Automated experiment tracking
-- Deep reinforcement learning
-- Comparison with DQN
-- Comparison with PPO
-
-These improvements would allow the project to progress from a tabular reinforcement learning proof of concept toward a more advanced RL experimentation platform.
-
----
-
 # 🎯 Project Outcome
 
-This project successfully demonstrates an end-to-end reinforcement learning workflow:
+This project demonstrates an end-to-end reinforcement learning workflow:
 
 ```text
-Data
-  ↓
+Synthetic Dataset
+      ↓
+Data Preparation
+      ↓
 State Representation
-  ↓
+      ↓
+State Discretization
+      ↓
 Custom Gymnasium Environment
-  ↓
-Q-Learning Agent
-  ↓
+      ↓
+Tabular Q-Learning Agent
+      ↓
 Training
-  ↓
-Policy Evaluation
-  ↓
-Hyperparameter Experimentation
-  ↓
+      ↓
+100-State Policy Evaluation
+      ↓
+Fixed-Policy Baseline Comparison
+      ↓
+Learning-Rate Experiment
+      ↓
 Business Interpretation
+      ↓
+Limitations & Future Improvements
 ```
 
-The project demonstrates the ability to take a business-oriented problem and translate it into a functioning reinforcement learning system using **Python, Gymnasium, NumPy, Pandas, Scikit-learn, and Matplotlib**.
+The project demonstrates how a business-oriented decision problem can be translated into a functioning reinforcement learning experiment using **Python, Gymnasium, NumPy, Pandas, Scikit-learn, and Matplotlib**.
+
+Most importantly, the project demonstrates the importance of **honest model evaluation**. Although the agent learned state-dependent behavior, it did not outperform the strongest fixed baseline in the final evaluation. That result provides a clear direction for future improvements to the environment, reward design, and learning process.
 
 ---
 
